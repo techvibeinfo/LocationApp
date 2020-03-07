@@ -3,12 +3,14 @@ package com.example.locationapp;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -34,6 +36,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 public class DirectionActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -44,6 +47,7 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
     private LatLng mOrigin;
     private LatLng mDestination;
     private Polyline mPolyline;
+    private TextToSpeech textToSpeech;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,20 +67,28 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         getMyLocation();
+
+        textToSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status != TextToSpeech.ERROR) {
+                    textToSpeech.setLanguage(new Locale("en", "IN"));
+                }
+            }
+        });
     }
 
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
-
-        if (requestCode == 100){
+        if (requestCode == 100) {
             if (!verifyAllPermissions(grantResults)) {
                 Toast.makeText(getApplicationContext(),"No sufficient permissions",Toast.LENGTH_LONG).show();
-            }else{
+            } else {
                 getMyLocation();
             }
-        }else {
+        } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
@@ -97,10 +109,11 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
         mLocationListener = new LocationListener() {
+
             @Override
             public void onLocationChanged(Location location) {
                 mOrigin =  new LatLng(location.getLatitude(), location.getLongitude());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mOrigin,12));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mOrigin,15));
                 if(mOrigin != null && mDestination != null)
                     drawRoute();
             }
@@ -126,8 +139,9 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
 
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_DENIED) {
                 mMap.setMyLocationEnabled(true);
-                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,0, mLocationListener);
 
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,10, mLocationListener);
+                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, mLocationListener);
                 mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(LatLng latLng) {
@@ -136,7 +150,6 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
                         mMarkerOptions = new MarkerOptions().position(mDestination).title("Destination");
                         mMap.addMarker(mMarkerOptions);
 
-                        mOrigin = new LatLng(13.017757105780483,77.65215374529362);
                         if(mOrigin != null && mDestination != null)
                             drawRoute();
                     }
@@ -150,9 +163,13 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
         }
     }
 
+    private void notifyUser(String toSpeak) {
+        textToSpeech.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null);
+    }
 
     private void drawRoute(){
 
+        notifyUser("School zone. please go slow");
         // Getting URL to the Google Directions API
         String url = getDirectionsUrl(mOrigin, mDestination);
 

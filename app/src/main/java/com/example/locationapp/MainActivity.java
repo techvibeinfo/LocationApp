@@ -16,9 +16,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         routeButton = findViewById(R.id.routeButton);
-
 
         routeButton.setOnClickListener(new View.OnClickListener() {
             @Override
