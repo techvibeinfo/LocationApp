@@ -3,7 +3,6 @@ package com.example.locationapp;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -16,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -24,6 +24,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 
 import org.json.JSONObject;
 
@@ -34,6 +37,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -51,7 +55,6 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_direction);
@@ -61,6 +64,29 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
                 .findFragmentById(R.id.map);
 
         mapFragment.getMapAsync(this);
+
+
+        // Initialize the AutocompleteSupportFragment.
+        AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
+                getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
+
+        // Specify the types of place data to return.
+        autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME));
+
+        // Set up a PlaceSelectionListener to handle the response.
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                Toast.makeText(getApplicationContext(),"Place: " + place.getName() + ", " + place.getId(), Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                Toast.makeText(getApplicationContext(),"An error occurred: " + status, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     @Override
@@ -73,6 +99,7 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
             public void onInit(int status) {
                 if(status != TextToSpeech.ERROR) {
                     textToSpeech.setLanguage(new Locale("en", "IN"));
+                    textToSpeech.setSpeechRate((float) 0.8);
                 }
             }
         });
@@ -125,12 +152,12 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
 
             @Override
             public void onProviderEnabled(String provider) {
-
+                Toast.makeText(getApplicationContext(),"Location set by GPS",Toast.LENGTH_LONG).show();
             }
 
             @Override
             public void onProviderDisabled(String provider) {
-
+                Toast.makeText(getApplicationContext(),"Turn on the location access",Toast.LENGTH_LONG).show();
             }
         };
 
@@ -140,8 +167,8 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_DENIED) {
                 mMap.setMyLocationEnabled(true);
 
-                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,10, mLocationListener);
-                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, mLocationListener);
+                mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,10000,20, mLocationListener);
+                mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 20, mLocationListener);
                 mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(LatLng latLng) {
@@ -164,12 +191,12 @@ public class DirectionActivity extends AppCompatActivity implements OnMapReadyCa
     }
 
     private void notifyUser(String toSpeak) {
-        textToSpeech.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null);
+        textToSpeech.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null,null);
     }
 
     private void drawRoute(){
 
-        notifyUser("School zone. please go slow");
+        notifyUser("school ahead. Please go slow");
         // Getting URL to the Google Directions API
         String url = getDirectionsUrl(mOrigin, mDestination);
 
